@@ -1,5 +1,3 @@
-build/
-lib/
 *~
 *.so
 __pycache__/
