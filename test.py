@@ -25,9 +25,13 @@ from torch.autograd import Variable
 K = 100
 scale_number = 3
 batch_size = 512
-USE_CUDA = True
-input_filename = "test/cube_100k.xyz"
-output_filename = "out.xyz"
+USE_CUDA = False
+# input_filename = "test/cube_100k.xyz"
+# output_filename = "out.xyz"
+
+filename = "bumpy-cube-small.xyz"
+input_filename = f"inputs/{filename}"
+output_filename = f"outputs/{filename}"
 
 # create thestimator
 estimator = Estimator.NormalEstimatorHoughCNN()
@@ -38,20 +42,23 @@ estimator.loadXYZ(input_filename)
 Ks = None
 model = None
 if scale_number == 1:
-    Ks=np.array([K], dtype=np.int)
+    Ks = np.array([K], dtype=np.int)
     import models.model_1s as model_1s
+
     model = model_1s.load_model("path_to_model_1s/model.pth")
     mean = np.load("path_to_model_1s/mean.npz")["arr_0"]
 elif scale_number == 3:
-    Ks=np.array([K,K/2,K*2], dtype=np.int)
+    Ks = np.array([K, K / 2, K * 2], dtype=np.int)
     import models.model_3s as model_3s
-    model = model_3s.load_model("path_to_model_3s/model.pth")
-    mean = np.load("path_to_model_1s/mean.npz")["arr_0"]
+
+    model = model_3s.load_model("model_3s_boluch_SGP2016/model.pth")
+    mean = np.load("model_3s_boluch_SGP2016/mean.npz")["arr_0"]
 elif scale_number == 5:
-    Ks=np.array([K,K/4,K/2,K*2,K*4], dtype=np.int)
+    Ks = np.array([K, K / 4, K / 2, K * 2, K * 4], dtype=np.int)
     import models.model_5s as model_5s
-    model = model_5s.load_model("path_to_model_5s/model.pth")
-    mean = np.load("path_to_model_5s/mean.npz")["arr_0"]
+
+    model = model_5s.load_model("model_5s_boulch_SGP2016/model.pth")
+    mean = np.load("model_5s_boulch_SGP2016/mean.npz")["arr_0"]
 
 # set the neighborhood size
 estimator.set_Ks(Ks)
@@ -68,15 +75,15 @@ print(model)
 model.eval()
 # iterate over the batches
 with torch.no_grad():
-    for pt_id in tqdm(range(0,estimator.size(), batch_size)):
+    for pt_id in tqdm(range(0, estimator.size(), batch_size)):
         bs = batch_size
-        batch = estimator.get_batch(pt_id, bs) - mean[None,:,:,:]
+        batch = estimator.get_batch(pt_id, bs) - mean[None, :, :, :]
         batch_th = torch.Tensor(batch)
         if USE_CUDA:
             batch_th = batch_th.cuda()
         estimations = model.forward(batch_th)
         estimations = estimations.cpu().data.numpy()
-        estimator.set_batch(pt_id,bs,estimations.astype(np.float64))
+        estimator.set_batch(pt_id, bs, estimations.astype(np.float64))
 
 # save the estimator
 estimator.saveXYZ(output_filename)

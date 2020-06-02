@@ -5,3 +5,11 @@ lib/
 __pycache__/
 *.pyc
 *local*
+3dmodels
+model_3s_boluch_SGP2016
+model_5s_boulch_SGP2016
+*.xyz
+eigentest
+*.zip
+*.p
+*.pdf
