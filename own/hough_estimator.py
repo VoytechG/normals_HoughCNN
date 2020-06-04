@@ -30,7 +30,7 @@ class HoughEstimator:
 
         self.ground_truth_normals = ground_truth_normals
 
-        self.visualise_hypothesis_estimation_flag = False
+        self.VISUALISE_HYPOTHESIS = False
 
     def K_len(self):
         return len(self.Ks)
@@ -127,7 +127,10 @@ class HoughEstimator:
         distances, indices = kd_tree.query(
             point_cloud, k=max(self.aniso_th + 1, K_max + 1)
         )
-        aniso_probabilities = np.array(distances[:, 5])
+
+        # Robust prob. distribution (no 5 bins "discretised" trick)
+        # Paper fig. 8c)
+        aniso_probabilities = np.array(distances[:, self.aniso_th])
 
         if len(points_close_to_origin_indices) > number_of_points:
             points_close_to_origin_indices = points_close_to_origin_indices[
@@ -140,16 +143,15 @@ class HoughEstimator:
 
             pca_rot_3d = self.get_pca_axis_3d(max_neighbourhod_point_cloud)
             # Aligns z-axis on the smallest Principal Component
-            max_neighbourhod_point_cloud = self.rotate_point_cloud(
-                max_neighbourhod_point_cloud, pca_rot_3d
-            )
+            point_cloud_rotated = self.rotate_point_cloud(point_cloud, pca_rot_3d)
 
-            local_accums = np.zeros(accumulators.shape[1:])
+            # shape (len(self.Ks), 33, 33)
+            accumulators_of_sampled_point = np.zeros(accumulators.shape[1:])
 
             for k_index, k in enumerate(self.Ks):
                 accum_normals = np.zeros((k, 3))
 
-                local_aniso_prob = aniso_probabilities[indices[po k + 1]]
+                local_aniso_prob = aniso_probabilities[indices[point_index, : k + 1]]
                 # 0 prob of choosing the hypothesised point
                 local_aniso_prob[0] = 0
                 local_aniso_prob /= np.sum(local_aniso_prob)
@@ -165,7 +167,7 @@ class HoughEstimator:
                             k + 1, (3), replace=False, p=local_aniso_prob
                         )
 
-                    [a, b, c] = max_neighbourhod_point_cloud[[ia, ib, ic]]
+                    [a, b, c] = point_cloud_rotated[indices[point_index, [ia, ib, ic]]]
 
                     normal = np.cross(b - a, c - a)
                     normal = normal / np.linalg.norm(normal)
@@ -176,24 +178,25 @@ class HoughEstimator:
                     x = int(np.round((normal[0] + 1) / 2 * self.A)) - 1
                     y = int(np.round((normal[1] + 1) / 2 * self.A)) - 1
 
-                    local_accums[k_index, x, y] += 1
+                    accumulators_of_sampled_point[k_index, x, y] += 1
 
-                    if (
-                        self.visualise_hypothesis_estimation_flag
-                        and hypothesis_index < 1
-                    ):
+                    # TODO add 2nd PCA
+
+                    if self.VISUALISE_HYPOTHESIS and hypothesis_index < 1:
                         print(f"Index of hypo point {point_index}")
                         self.visualise_hypothesis_estimation(
-                            point_cloud=max_neighbourhod_point_cloud,
-                            neighbourhood_cloud_indices=np.arange(1, k + 1),
-                            hypothesised_point_index=0,
-                            sampled_three_points_indices=[ia, ib, ic],
+                            point_cloud=point_cloud_rotated,
+                            neighbourhood_cloud_indices=indices[point_index, 1 : k + 1],
+                            hypothesised_point_index=point_index,
+                            sampled_three_points_indices=indices[
+                                point_index, [ia, ib, ic]
+                            ],
                             hypothesised_normal=normal,
                         )
 
-            accumulators[i] = local_accums
+            accumulators[i] = accumulators_of_sampled_point
 
-            if self.ground_truth_normals is not None:
+            if target_normals is not None:
                 target_normals[i] = self.ground_truth_normals[point_index]
 
         return accumulators, target_normals
