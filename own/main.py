@@ -1,8 +1,14 @@
 import time
+import numpy as np
+import os
+import pickle
+
 import hough_estimator as he
 import multiprocessing
+from config import Ks
 
-Ks = [0.5, 1, 2]
+dataset_directory = "generated_inputs"
+dataset_filename = "small_only_3d_pca.p"
 
 
 def get_batch(index):
@@ -11,15 +17,20 @@ def get_batch(index):
     HE = he.HoughEstimator(
         point_cloud_path=f"../3dmodels/model_{index}.xyz", K_multipliers=Ks
     )
-    # HE.T = 300
-    HE.generate_accums_for_point_cloud(number_of_points=64)
+    HE.T = 1000
+    accumulators, _ = HE.generate_accums_for_point_cloud(number_of_points=64)
 
+    return accumulators
 
-paths = ["model_0.xyz", "model_256.xyz", "model_512.xyz"]
 
 if __name__ == "__main__":
 
     pool = multiprocessing.Pool(7)
     start_time = time.time()
-    results = list(map(get_batch, list(range(10))))
+    accumulators = np.concatenate(pool.map(get_batch, list(range(10))))
     print("--- %s seconds ---" % (time.time() - start_time))
+
+    dataset = {"inputs": accumulators, "mean": np.mean(accumulators, 0)}
+    print("saving")
+    os.makedirs(dataset_directory, exist_ok=True)
+    pickle.dump(dataset, open(os.path.join(dataset_directory, dataset_filename), "wb"))

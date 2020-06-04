@@ -55,6 +55,14 @@ def apply_rotation(self, R):
 trimesh.Trimesh.apply_rotation = apply_rotation
 
 
+def get_line_as_cuboid(scale=1, thickness=1):
+    mesh_x = trimesh.creation.box()
+    mesh_x.vertices = (
+        (mesh_x.vertices + [0.5, 0, 0]) * [10 * thininess, 1, 1] * scale / thininess
+    )
+    mesh_x.color_verts([1, 0, 0])
+
+
 def get_axis_trimesh(scale=1, thickness=1):
 
     scale = scale / 10

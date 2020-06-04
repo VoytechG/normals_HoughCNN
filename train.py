@@ -7,7 +7,6 @@ from tqdm import tqdm
 import pickle
 import os
 
-# from config import *
 torch.backends.cudnn.benchmark = True
 
 from config import *

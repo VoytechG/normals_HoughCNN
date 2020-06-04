@@ -29,7 +29,7 @@ USE_CUDA = False
 # input_filename = "test/cube_100k.xyz"
 # output_filename = "out.xyz"
 
-filename = "bumpy-cube-small.xyz"
+filename = "rect.xyz"
 input_filename = f"inputs/{filename}"
 output_filename = f"outputs/{filename}"
 
@@ -51,8 +51,10 @@ elif scale_number == 3:
     Ks = np.array([K, K / 2, K * 2], dtype=np.int)
     import models.model_3s as model_3s
 
-    model = model_3s.load_model("model_3s_boluch_SGP2016/model.pth")
-    mean = np.load("model_3s_boluch_SGP2016/mean.npz")["arr_0"]
+    # model_3s_path = "model_3s_boluch_SGP2016"
+    model_3s_path = "trained_model"
+    model = model_3s.load_model(f"{model_3s_path}/model.pth", cpu_only=True)
+    mean = np.load(f"{model_3s_path}/mean.npz")["arr_0"]
 elif scale_number == 5:
     Ks = np.array([K, K / 4, K / 2, K * 2, K * 4], dtype=np.int)
     import models.model_5s as model_5s
