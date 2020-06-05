@@ -62,6 +62,21 @@ class HoughEstimator:
     def rotate_point_cloud(self, point_cloud_subset, rot_matrix):
         return np.array((rot_matrix @ point_cloud_subset.T).T)
 
+    def generate_random_triplet_choices(self, max_point_index, probabilities):
+
+        random_choices = np.random.choice(
+            max_point_index, (self.T, 3), replace=True, p=probabilities
+        )
+
+        random_choices = [
+            np.random.choice(max_point_index, (3), replace=False, p=probabilities)
+            if ia == ib or ib == ic or ia == ic
+            else [ia, ib, ic]
+            for [ia, ib, ic] in random_choices
+        ]
+
+        return random_choices
+
     def get_normal_from_three_points(self, a, b, c):
         normal = np.cross(b - a, c - a)
         normal = normal / np.linalg.norm(normal)
@@ -69,6 +84,17 @@ class HoughEstimator:
             # reorient normal
             normal = normal * -1
         return normal
+
+    def create_accumulator_with_normals(self, normals):
+
+        accumulator = np.zeros((self.A, self.A))
+
+        for normal in normals:
+            x = int(np.round((normal[0] + 1) / 2 * self.A)) - 1
+            y = int(np.round((normal[1] + 1) / 2 * self.A)) - 1
+            accumulator[x, y] += 1
+
+        return accumulator
 
     def visualise_hypothesis_estimation(
         self,
@@ -131,6 +157,25 @@ class HoughEstimator:
             point_size=10,
         )
 
+    def visualise_accumulator(self, accumulator_no_pcas, accumulator_after_3d_pca):
+        # plt.figure()
+
+        # subplot(r,c) provide the no. of rows and columns
+        # _, subplots = plt.subplots(1, 2)
+
+        # # use the created array to output your multiple images. In this case I have stacked 4 images vertically
+        # subplots[0].imshow(accumulator_no_pcas)
+        # subplots[1].imshow(accumulator_after_3d_pca)
+        plt.subplot(1, 2, 1)
+        plt.imshow(accumulator_no_pcas)
+        plt.title("No PCA applied")
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(accumulator_after_3d_pca)
+        plt.title("3D PCA applied")
+
+        plt.show()
+
     def generate_accums_for_point_cloud(self, number_of_points):
 
         accumulators = np.zeros((number_of_points, len(self.Ks), self.A, self.A))
@@ -154,7 +199,7 @@ class HoughEstimator:
         )
 
         # Robust prob. distribution (no 5 bins "discretised" trick)
-        # Paper fig. 8c)
+        # Paper fig. 8c
         aniso_probabilities = np.array(distances[:, self.aniso_th])
 
         if len(points_close_to_origin_indices) > number_of_points:
@@ -166,12 +211,11 @@ class HoughEstimator:
 
             max_neighbourhod_point_cloud = point_cloud[indices[point_index]]
 
-            pca_rot_3d = self.get_pca_axis_3d(max_neighbourhod_point_cloud)
+            R_pca_3d = self.get_pca_axis_3d(max_neighbourhod_point_cloud)
             # Aligns z-axis on the smallest Principal Component
-            point_cloud_rotated = self.rotate_point_cloud(point_cloud, pca_rot_3d)
+            # point_cloud_rotated = self.rotate_point_cloud(point_cloud, pca_rot_3d)
 
-            # shape (len(self.Ks), 33, 33)
-            accumulators_of_sampled_point = np.zeros(accumulators.shape[1:])
+            accumulators_of_sampled_point = np.zeros((len(self.Ks), self.A, self.A))
 
             for k_index, k in enumerate(self.Ks):
                 accum_normals = np.zeros((k, 3))
@@ -181,41 +225,49 @@ class HoughEstimator:
                 local_aniso_prob[0] = 0
                 local_aniso_prob /= np.sum(local_aniso_prob)
 
-                random_choices = np.random.choice(
-                    k + 1, (self.T, 3), replace=True, p=local_aniso_prob
+                random_choices = self.generate_random_triplet_choices(
+                    k + 1, local_aniso_prob
                 )
+
+                normals = np.zeros((len(random_choices), 3))
 
                 for hypothesis_index, [ia, ib, ic] in enumerate(random_choices):
 
-                    if ia == ib or ib == ic or ia == ic:
-                        [ia, ib, ic] = np.random.choice(
-                            k + 1, (3), replace=False, p=local_aniso_prob
-                        )
+                    [a, b, c] = point_cloud[indices[point_index, [ia, ib, ic]]]
+                    normals[hypothesis_index] = self.get_normal_from_three_points(
+                        a, b, c
+                    )
 
-                    [a, b, c] = point_cloud_rotated[indices[point_index, [ia, ib, ic]]]
+                accumulator_no_pcas = self.create_accumulator_with_normals(normals)
 
-                    normal = self.get_normal_from_three_points(a, b, c)
+                normals_after_PCA_3D = np.array(
+                    [R_pca_3d @ normal for normal in normals]
+                )
+                accumulator_after_3d_pca = self.create_accumulator_with_normals(
+                    normals_after_PCA_3D
+                )
 
-                    x = int(np.round((normal[0] + 1) / 2 * self.A)) - 1
-                    y = int(np.round((normal[1] + 1) / 2 * self.A)) - 1
+                self.visualise_accumulator(
+                    accumulator_no_pcas, accumulator_after_3d_pca
+                )
 
-                    accumulators_of_sampled_point[k_index, x, y] += 1
+                # accumulators_k = self.create_accumulator_with_normals(normals)
 
-                    # TODO add 2nd PCA
+                # # TODO add 2nd PCA
 
-                    if self.VISUALISE_HYPOTHESIS and hypothesis_index < 1:
-                        print(f"Index of hypo point {point_index}")
-                        self.visualise_hypothesis_estimation(
-                            point_cloud=point_cloud_rotated[
-                                indices[point_index, 0 : K_max + 1]
-                            ],
-                            neighbourhood_cloud_indices=np.arange(1, k + 1),
-                            hypothesised_point_index=0,
-                            sampled_three_points_indices=[ia, ib, ic],
-                            hypothesised_normal=normal,
-                        )
+                # if self.VISUALISE_HYPOTHESIS and hypothesis_index < 1:
+                #     print(f"Index of hypo point {point_index}")
+                #     self.visualise_hypothesis_estimation(
+                #         point_cloud=point_cloud_rotated[
+                #             indices[point_index, 0 : K_max + 1]
+                #         ],
+                #         neighbourhood_cloud_indices=np.arange(1, k + 1),
+                #         hypothesised_point_index=0,
+                #         sampled_three_points_indices=[ia, ib, ic],
+                #         hypothesised_normal=normal,
+                #     )
 
-            accumulators[i] = accumulators_of_sampled_point
+            # accumulators[i] = accumulators_of_sampled_point
 
             if target_normals is not None:
                 target_normals[i] = self.ground_truth_normals[point_index]
