@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
 import pyrender
+import matplotlib.pyplot as plt
 
 from mesh_tools import run_gui_pyrmesh
 
@@ -82,7 +83,7 @@ class HoughEstimator:
             "neighbourhood_cloud": [235, 189, 52],
             "hypothesised_point": [182, 0, 214],
             "sampled_three_points": [232, 0, 0],
-            "estimated_normal": [86, 0, 214, 255],
+            "estimated_normal": [86, 0, 214],
         }
 
         hypothesised_point = point_cloud[hypothesised_point_index]
@@ -100,16 +101,32 @@ class HoughEstimator:
             np.array(color_values["sampled_three_points"]) / 255
         )
 
-        normal_colors = np.ones((2, 4)) * color_values["estimated_normal"] / 255
+        normal_colors = (
+            np.ones((2, 4)) * (color_values["estimated_normal"] + [255]) / 255
+        )
+        triangle_colors = (
+            np.ones((2, 4)) * (color_values["sampled_three_points"] + [255]) / 255
+        )
+        [a, b, c] = point_cloud[sampled_three_points_indices]
 
         run_gui_pyrmesh(
             [
                 pyrender.Mesh.from_points(point_cloud, colors=colors),
-                # pyrender.Primitive(
-                #     [hypothesised_point, hypothesised_point + hypothesised_normal],
-                #     mode=3,
-                #     color_0=normal_colors,
-                # ),
+                pyrender.Mesh(
+                    [
+                        pyrender.Primitive(
+                            [
+                                hypothesised_point,
+                                hypothesised_point + hypothesised_normal * 0.12,
+                            ],
+                            mode=3,
+                            color_0=normal_colors,
+                        ),
+                        pyrender.Primitive([a, b], mode=3, color_0=triangle_colors),
+                        pyrender.Primitive([b, c], mode=3, color_0=triangle_colors),
+                        pyrender.Primitive([c, a], mode=3, color_0=triangle_colors),
+                    ]
+                ),
             ],
             point_size=10,
         )
@@ -189,12 +206,12 @@ class HoughEstimator:
                     if self.VISUALISE_HYPOTHESIS and hypothesis_index < 1:
                         print(f"Index of hypo point {point_index}")
                         self.visualise_hypothesis_estimation(
-                            point_cloud=point_cloud_rotated,
-                            neighbourhood_cloud_indices=indices[point_index, 1 : k + 1],
-                            hypothesised_point_index=point_index,
-                            sampled_three_points_indices=indices[
-                                point_index, [ia, ib, ic]
+                            point_cloud=point_cloud_rotated[
+                                indices[point_index, 0 : K_max + 1]
                             ],
+                            neighbourhood_cloud_indices=np.arange(1, k + 1),
+                            hypothesised_point_index=0,
+                            sampled_three_points_indices=[ia, ib, ic],
                             hypothesised_normal=normal,
                         )
 
