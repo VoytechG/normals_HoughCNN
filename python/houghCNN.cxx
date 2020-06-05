@@ -43,9 +43,9 @@ int NormEst::size_normals()
 }
 
 inline void fill_accum_aniso(HoughAccum &hd, std::vector<long int> &nbh, int nbh_size,
-														 const NormEst *est, unsigned int &randPos,
-														 const vector<float> &proba_vector,
-														 bool compute_P = true, Matrix3 P_ref = Matrix3())
+							 const NormEst *est, unsigned int &randPos,
+							 const vector<float> &proba_vector,
+							 bool compute_P = true, Matrix3 P_ref = Matrix3())
 {
 
 	//references
@@ -204,7 +204,7 @@ inline void fill_accum_aniso(HoughAccum &hd, std::vector<long int> &nbh, int nbh
 		if (compute_P)
 			nl = P2 * nl; // change coordinate system
 		if (nl.dot(Vector3(0, 0, 1)) < 0)
-			nl *= -1;			//reorient normal
+			nl *= -1;	//reorient normal
 		nl.normalize(); //normalize
 
 		// get the position in accum
@@ -224,8 +224,8 @@ inline void fill_accum_aniso(HoughAccum &hd, std::vector<long int> &nbh, int nbh
 
 // not aniso
 inline void fill_accum_not_aniso(HoughAccum &hd, std::vector<long int> &nbh, int nbh_size,
-																 const NormEst *est, unsigned int &randPos,
-																 bool compute_P = true, Matrix3 P_ref = Matrix3())
+								 const NormEst *est, unsigned int &randPos,
+								 bool compute_P = true, Matrix3 P_ref = Matrix3())
 {
 
 	//references
@@ -329,7 +329,7 @@ inline void fill_accum_not_aniso(HoughAccum &hd, std::vector<long int> &nbh, int
 		if (compute_P)
 			nl = P2 * nl; // change coordinate system
 		if (nl.dot(Vector3(0, 0, 1)) < 0)
-			nl *= -1;			//reorient normal
+			nl *= -1;	//reorient normal
 		nl.normalize(); //normalize
 
 		// get the position in accum
@@ -413,7 +413,7 @@ void NormEst::initialize()
 	if (use_aniso)
 	{
 		proba_vector.resize(N);
-		#pragma omp parallel for
+#pragma omp parallel for
 		for (int pt_id = 0; pt_id < N; pt_id++)
 		{
 
@@ -631,10 +631,10 @@ void NormEst::get_Ks(int *array, int m)
 //
 
 void create_angle(
-		Eigen::MatrixX3d &points,
-		Eigen::MatrixX3d &normals,
-		double angle,
-		int nb_points)
+	Eigen::MatrixX3d &points,
+	Eigen::MatrixX3d &normals,
+	double angle,
+	int nb_points)
 {
 	//init the rand machine
 
@@ -646,8 +646,8 @@ void create_angle(
 		Eigen::Vector3d ax(0, -1, 0);
 		Eigen::Matrix3d u_cross;
 		u_cross << 0, -ax(2), ax(1),
-				ax(2), 0, -ax(0),
-				-ax(1), ax(0), 0;
+			ax(2), 0, -ax(0),
+			-ax(1), ax(0), 0;
 		Eigen::Matrix3d u_cov;
 		u_cov = ax * ax.transpose();
 		Rot0 = cos(angle) * Eigen::Matrix3d::Identity() + sin(angle) * u_cross + (1 - cos(angle)) * u_cov;
@@ -658,8 +658,8 @@ void create_angle(
 		Eigen::Vector3d ax(cos(5 * M_PI / 6), sin(5 * M_PI / 6), 0);
 		Eigen::Matrix3d u_cross;
 		u_cross << 0, -ax(2), ax(1),
-				ax(2), 0, -ax(0),
-				-ax(1), ax(0), 0;
+			ax(2), 0, -ax(0),
+			-ax(1), ax(0), 0;
 		Eigen::Matrix3d u_cov;
 		u_cov = ax * ax.transpose();
 		Rot1 = cos(angle) * Eigen::Matrix3d::Identity() + sin(angle) * u_cross + (1 - cos(angle)) * u_cov;
@@ -669,8 +669,8 @@ void create_angle(
 		Eigen::Vector3d ax(cos(M_PI / 6), sin(M_PI / 6), 0);
 		Eigen::Matrix3d u_cross;
 		u_cross << 0, -ax(2), ax(1),
-				ax(2), 0, -ax(0),
-				-ax(1), ax(0), 0;
+			ax(2), 0, -ax(0),
+			-ax(1), ax(0), 0;
 		Eigen::Matrix3d u_cov;
 		u_cov = ax * ax.transpose();
 		Rot2 = cos(angle) * Eigen::Matrix3d::Identity() + sin(angle) * u_cross + (1 - cos(angle)) * u_cov;
@@ -837,7 +837,7 @@ void add_gaussian_noise_percentage(Eigen::MatrixX3d &pc, int percentage)
 }
 
 int NormEst::generate_training_accum_random_corner(
-		int noise_val, int n_points, double *array, double *array_gt)
+	int noise_val, int n_points, double *array, double *array_gt)
 {
 
 	K_aniso = 5;
@@ -845,11 +845,11 @@ int NormEst::generate_training_accum_random_corner(
 	A = 33;
 	is_tree_initialized = false;
 
-	int N = 5000;									 // size of the point cloud to be generated
-	double angle_max = 1.;				 // max angle of the angle
-	double angle_min = 0.2;				 // min angle of the points cloud
+	int N = 5000;				   // size of the point cloud to be generated
+	double angle_max = 1.;		   // max angle of the angle
+	double angle_min = 0.2;		   // min angle of the points cloud
 	double max_square_dist = 0.02; // maximal square dist to accept point
-																 //(be sure it include a corner or an edge)
+								   //(be sure it include a corner or an edge)
 
 	// generate angle point cloud
 	double angle = (rand() + 0.) / RAND_MAX;

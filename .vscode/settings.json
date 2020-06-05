@@ -1,3 +1,7 @@
 {
-  "python.pythonPath": "C:\\Users\\wojci\\.conda\\envs\\geo_tutorials\\python.exe"
+  "python.pythonPath": "C:\\Users\\wojci\\.conda\\envs\\geo_tutorials\\python.exe",
+  "files.associations": {
+    "*.m": "matlab",
+    "vector": "cpp"
+  }
 }

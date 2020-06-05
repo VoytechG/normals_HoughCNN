@@ -38,7 +38,6 @@ def create_model():
         layers.Dense(1024, **dense_layer_params),
         layers.Dropout(0.5),
         layers.Dense(512, **dense_layer_params),
-        # layers.Dropout(0.5),
         layers.Dense(2),
     ]
 

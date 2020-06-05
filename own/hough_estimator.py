@@ -3,14 +3,14 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import KDTree
 import pyrender
 
-from implementations import run_gui_pyrmesh
+from mesh_tools import run_gui_pyrmesh
 
 
 class HoughEstimator:
     def __init__(self, point_cloud_path, K_multipliers, ground_truth_normals=None):
 
         # Distance from origin of points for which the accumulator is calculated
-        self.MAX_DIST_TO_ORIGIN_SQ = 0.02
+        self.max_dist_to_origin_sq = 0.02
 
         # Accumulator (33x33) side size
         self.A = 33
@@ -44,7 +44,7 @@ class HoughEstimator:
 
     def get_points_close_to_origin(self):
         point_cloud = self.point_cloud
-        max_dst = self.MAX_DIST_TO_ORIGIN_SQ
+        max_dst = self.max_dist_to_origin_sq
         return np.array(
             [
                 i
@@ -60,6 +60,14 @@ class HoughEstimator:
 
     def rotate_point_cloud(self, point_cloud_subset, rot_matrix):
         return np.array((rot_matrix @ point_cloud_subset.T).T)
+
+    def get_normal_from_three_points(self, a, b, c):
+        normal = np.cross(b - a, c - a)
+        normal = normal / np.linalg.norm(normal)
+        if normal[2] < 0:
+            # reorient normal
+            normal = normal * -1
+        return normal
 
     def visualise_hypothesis_estimation(
         self,
@@ -103,7 +111,7 @@ class HoughEstimator:
                 #     color_0=normal_colors,
                 # ),
             ],
-            point_size=5,
+            point_size=10,
         )
 
     def generate_accums_for_point_cloud(self, number_of_points):
@@ -169,11 +177,7 @@ class HoughEstimator:
 
                     [a, b, c] = point_cloud_rotated[indices[point_index, [ia, ib, ic]]]
 
-                    normal = np.cross(b - a, c - a)
-                    normal = normal / np.linalg.norm(normal)
-                    if normal[2] < 0:
-                        # reorient normal
-                        normal = normal * -1
+                    normal = self.get_normal_from_three_points(a, b, c)
 
                     x = int(np.round((normal[0] + 1) / 2 * self.A)) - 1
                     y = int(np.round((normal[1] + 1) / 2 * self.A)) - 1
