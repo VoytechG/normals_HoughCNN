@@ -13,6 +13,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from sklearn.neighbors import KDTree
+from scipy.spatial.transform import Rotation as R
 
 
 def generate_point_cloud(angle, noise_factor=0):
@@ -21,6 +22,8 @@ def generate_point_cloud(angle, noise_factor=0):
     # Scale changes size
     scale = 8
     # Degrees changes angles of the walls
+    if abs(angle - 90) < 0.00001:
+        angle = 90.1
     degrees = angle - 90
     # Rotator changes the point cloud's entire rotation
     rotator = 90
@@ -153,4 +156,13 @@ def generate_point_cloud(angle, noise_factor=0):
 
     point_cloud += np.random.randn(*point_cloud.shape) * mean_dst * noise_factor
 
+    R = Rotation.random().as_matrix()
+
+    point_cloud = (R @ point_cloud.T).T
+    normals = (R @ normals.T).T
+
     return point_cloud, normals
+
+
+def save_file(fliename, point_cloud, normals):
+    np.savetxt(fliename, np.concatenate([point_cloud, normals], 1))

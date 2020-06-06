@@ -3,28 +3,61 @@ import numpy as np
 import os
 import pickle
 
-import hough_estimator as he
+from hough_estimator import HoughEstimator as HE
 import multiprocessing
-from config import Ks
+from config import (
+    Ks,
+    batch_size,
+    MIN_ANGLE,
+    MAX_ANGLE,
+    MIN_NOISE_FACTOR,
+    MAX_NOISE_FACTOR,
+)
+from mesh_generator import generate_point_cloud
 
 dataset_directory = "generated_inputs"
-dataset_filename = "small_only_3d_pca.p"
+dataset_filename = "small_0.p"
 
-parallel_computing = False
-visualise_hypothesis = True
+parallel_computing = True
+
+visualise_hypothesis = False
+visualise_accumulator = False
+visualise_valid_points = False
+
+batches_to_generate = 20 // batch_size
 
 
 def get_batch(index):
-    print(f"Working on {index}")
-    index *= 256
-    HE = he.HoughEstimator(
-        point_cloud_path=f"../3dmodels/model_{index}.xyz", K_multipliers=Ks
-    )
-    HE.VISUALISE_HYPOTHESIS = visualise_hypothesis
-    HE.T = 1000
-    accumulators, _ = HE.generate_accums_for_point_cloud(number_of_points=64)
 
-    return accumulators
+    start_time_batch = time.time()
+
+    angle = np.random.rand() * (MAX_ANGLE - MIN_ANGLE) + MIN_ANGLE
+    noise_factor = (
+        np.random.rand() * (MAX_NOISE_FACTOR - MIN_NOISE_FACTOR) + MIN_NOISE_FACTOR
+    )
+
+    point_cloud, normals = generate_point_cloud(angle, noise_factor)
+
+    # print(f"Working on {index}")
+    # index *= 256
+    # point_cloud = HE.load_point_cloud(f"../3dmodels/model_{index}.xyz")
+    # normals = None
+
+    he = HE(number_of_channels=3, point_cloud=point_cloud, ground_truth_normals=normals)
+    he.VISUALISE_HYPOTHESIS = visualise_hypothesis
+    he.VISUALISE_ACCUMULATOR = visualise_accumulator
+    he.VISUALISE_VALID_POINTS = visualise_valid_points
+
+    (
+        accumulators,
+        inverse_rotation_matrices,
+        target_normals,
+    ) = he.generate_accums_for_point_cloud(batch_size=batch_size)
+
+    batch_duration = time.time() - start_time_batch
+    print(f"finished {index+1}/{batches_to_generate} --- {batch_duration:.2f}s ---")
+
+    return accumulators, inverse_rotation_matrices, target_normals
 
 
 if __name__ == "__main__":
@@ -33,13 +66,22 @@ if __name__ == "__main__":
 
     if parallel_computing:
         pool = multiprocessing.Pool(7)
-        accumulators = np.concatenate(pool.map(get_batch, list(range(10))))
+        batches = list(pool.map(get_batch, list(range(batches_to_generate))))
     else:
-        accumulators = np.concatenate(map(get_batch, list(range(10))))
+        batches = list(map(get_batch, list(range(batches_to_generate))))
+
+    accumulators = np.concatenate([batch[0] for batch in batches])
+    inv_rot_matrices = np.concatenate([batch[1] for batch in batches])
+    target_normals = np.concatenate([batch[2] for batch in batches])
 
     print("--- %s seconds ---" % (time.time() - start_time))
 
-    dataset = {"inputs": accumulators, "mean": np.mean(accumulators, 0)}
+    dataset = {
+        "inputs": accumulators,
+        "mean": np.mean(accumulators, 0),
+        "inv_rot_matrices": inv_rot_matrices,
+        "targets": target_normals,
+    }
     print("saving")
     os.makedirs(dataset_directory, exist_ok=True)
     pickle.dump(dataset, open(os.path.join(dataset_directory, dataset_filename), "wb"))
