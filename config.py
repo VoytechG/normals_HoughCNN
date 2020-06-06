@@ -4,9 +4,11 @@ dataset_filename = "datasetk3.p"
 
 K = 100
 scale_number = 3
-batch_size = 16
+batch_size = 128
 
 dataset_size = 100000
+
+Ks = [100, 50, 200]
 
 
 drop_learning_rate = 0.5

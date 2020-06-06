@@ -90,8 +90,9 @@ class HoughEstimator:
         return normal
 
     def get_accumulator_coordaintes(self, normal):
-        x = int(np.round((normal[0] + 1) / 2 * self.A)) - 1
-        y = int(np.round((normal[1] + 1) / 2 * self.A)) - 1
+        # std::max(0., std::min(1 - 1e-8, (nl[0] + 1.) / 2.)) * A;
+        x = int(max(0, min((normal[0] + 1) / 2, 1 - 1e-8)) * self.A)
+        y = int(max(0, min((normal[1] + 1) / 2, 1 - 1e-8)) * self.A)
         return x, y
 
     def create_accumulator_with_normals(self, normals):

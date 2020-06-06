@@ -443,7 +443,7 @@ void NormEst::get_batch(int batch_id, int batch_size, double *array)
 
 	// create forward tensor
 	unsigned int randPos2 = randPos;
-	//#pragma omp parallel for firstprivate(randPos2)
+	// #pragma omp parallel for firstprivate(randPos2)
 	for (int pt_id = batch_id; pt_id < batch_id + batch_size; pt_id++)
 	{
 		if (pt_id >= _pc.rows())

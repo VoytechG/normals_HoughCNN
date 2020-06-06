@@ -12,19 +12,18 @@ from config import (
     MAX_ANGLE,
     MIN_NOISE_FACTOR,
     MAX_NOISE_FACTOR,
+    batches_to_generate,
+    dataset_directory,
+    dataset_filename,
+    processes_to_use,
 )
 from mesh_generator import generate_point_cloud
-
-dataset_directory = "generated_inputs"
-dataset_filename = "small_0.p"
 
 parallel_computing = True
 
 visualise_hypothesis = False
 visualise_accumulator = False
 visualise_valid_points = False
-
-batches_to_generate = 20 // batch_size
 
 
 def get_batch(index):
@@ -64,8 +63,13 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
+    print(
+        f"Generating {batches_to_generate} batches with {batch_size} samples each "
+        + f"({batches_to_generate * batch_size} total)"
+    )
+
     if parallel_computing:
-        pool = multiprocessing.Pool(7)
+        pool = multiprocessing.Pool(processes_to_use)
         batches = list(pool.map(get_batch, list(range(batches_to_generate))))
     else:
         batches = list(map(get_batch, list(range(batches_to_generate))))
