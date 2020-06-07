@@ -11,3 +11,4 @@ eigentest
 *.p
 *.pdf
 *.h5
+own/outputs
