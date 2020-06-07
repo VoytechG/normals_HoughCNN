@@ -69,7 +69,6 @@ def evaluate_normals(original, estimate):
 
         evaluation[i] = error_angle
 
-    # Normalises the evaluation data
     evaluation = evaluation / maxdeg
 
     fig = plt.figure()
@@ -81,11 +80,10 @@ def evaluate_normals(original, estimate):
     ticks = np.arange(0, maxdeg + 1, maxdeg / 5)
 
     cbar = fig.colorbar(colours, ticks=ticks / maxdeg)
-    # cbar = fig.colorbar(colours, ticks=ticks)
-    cbar.ax.set_yticklabels([str(int(tick)) for tick in ticks])
-    # cbar.ax.set_yticklabels(["0.0", "0.2", "0.4", "0.6", "0.8", "0.95", "1.0"])
 
-    # cbar = fig.colorbar(colours)
+    labels = [str(int(tick)) for tick in ticks]
+    labels[-1] = ">=" + labels[-1]
+    cbar.ax.set_yticklabels(labels)
 
 
 def load_xyz(path):
