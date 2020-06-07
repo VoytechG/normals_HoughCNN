@@ -29,9 +29,9 @@ USE_CUDA = False
 # input_filename = "test/cube_100k.xyz"
 # output_filename = "out.xyz"
 
-filename = "rect.xyz"
-input_filename = f"inputs/{filename}"
-output_filename = f"outputs/{filename}"
+filename = "rect_small"
+input_filename = f"own/inputs/{filename}.xyz"
+output_filename = f"own/outputs/{filename}_theirs.xyz"
 
 # create thestimator
 estimator = Estimator.NormalEstimatorHoughCNN()

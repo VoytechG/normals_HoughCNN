@@ -100,6 +100,6 @@ def load_model(filename, cpu_only=False):
 
 model = create_model()
 
-from torchsummary import summary
+# from torchsummary import summary
 
-summary(model.to(torch.device("cuda:0")), (3, 33, 33))
+# summary(model.to(torch.device("cuda:0")), (3, 33, 33))

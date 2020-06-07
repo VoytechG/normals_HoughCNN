@@ -4,6 +4,7 @@ from sklearn.neighbors import KDTree
 import pyrender
 import matplotlib.pyplot as plt
 from enum import Enum, auto
+import math
 
 from mesh_tools import run_gui_pyrmesh, get_axis_trimesh
 
@@ -18,7 +19,7 @@ class HoughEstimator:
 
         # Distance from origin of points for which the accumulator is calculated
         # self.max_dist_to_origin_sq = 0.2
-        self.points_to_subsample_multiplier = 3
+        self.points_to_subsample_multiplier = 1
 
         # Accumulator (33x33) side size
         self.A = 33
@@ -257,22 +258,28 @@ class HoughEstimator:
             plt.ion()
             plt.show()
 
-    def generate_accums_for_point_cloud(self, batch_size):
+    def generate_accums_for_point_cloud(self, batch_size=None):
 
         point_cloud = self.point_cloud
         kd_tree = KDTree(point_cloud)
 
-        number_of_points_to_sample = min(
-            batch_size * self.points_to_subsample_multiplier, len(point_cloud)
-        )
+        if batch_size is None:
+            # Take all
+            batch_size = len(point_cloud)
+            sampled_points_indices = list(range(batch_size))
 
-        sampling_set_indices = kd_tree.query(
-            [[0, 0, 0]], number_of_points_to_sample, return_distance=False
-        )[0]
+        else:
+            number_of_points_to_sample = min(
+                batch_size * self.points_to_subsample_multiplier, len(point_cloud)
+            )
 
-        sampled_points_indices = sampling_set_indices[
-            np.random.choice(number_of_points_to_sample, batch_size, replace=False)
-        ]
+            sampling_set_indices = kd_tree.query(
+                [[0, 0, 0]], number_of_points_to_sample, return_distance=False
+            )[0]
+
+            sampled_points_indices = sampling_set_indices[
+                np.random.choice(number_of_points_to_sample, batch_size, replace=False)
+            ]
 
         if self.VISUALISE_VALID_POINTS:
             self.visualise_valid_points(
@@ -341,6 +348,9 @@ class HoughEstimator:
                     normals[hypothesis_index] = self.get_normal_from_three_points(
                         a, b, c
                     )
+
+                    if math.isnan(normals[hypothesis_index, 0]):
+                        pass
 
                 normals_after_PCA_3D = (R_pca_3d @ normals.T).T
                 normals_after_PCA_3D = np.array(

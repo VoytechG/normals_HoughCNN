@@ -4,7 +4,13 @@ import pickle
 from matplotlib.pyplot import imshow
 import os
 import numpy as np
-from config import channels, batch_size, keras_model_save_path, epochs
+from config import (
+    channels,
+    keras_model_save_path,
+    epochs,
+    dataset_directory,
+    dataset_filename,
+)
 from sklearn.model_selection import train_test_split
 
 
@@ -48,13 +54,12 @@ def create_model():
 
 
 def load_data():
-    dataset_directory = "../dataset"
-    dataset = pickle.load(open(os.path.join(dataset_directory, "datasetk3.p"), "rb"))
+    dataset = pickle.load(open(os.path.join(dataset_directory, dataset_filename), "rb"))
     return dataset
 
 
 data = load_data()
-X = data["input"] - data["mean"][None, :, :, :]
+X = data["inputs"] - data["mean"]
 y = data["targets"]
 
 model = create_model()
@@ -63,6 +68,6 @@ model.compile(
 )
 
 model.summary()
-# model.fit(X, y, validation_split=0.2, epochs=epochs)
+model.fit(X, y, validation_split=0.2, epochs=epochs, batch_size=128, shuffle=True)
 
-# model.save(keras_model_save_path + "model_1.h5")
+model.save(keras_model_save_path + "model_c3_15.h5")

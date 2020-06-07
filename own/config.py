@@ -1,7 +1,7 @@
 Ks = [0.5, 1, 2]
 
-batch_size = 128
-batches_to_generate = 60000 // batch_size
+batch_size = 80
+batches_to_generate = 40000 // batch_size
 # batches_to_generate = 10
 
 channels = len(Ks)
@@ -11,11 +11,11 @@ MIN_ANGLE = 80
 MAX_ANGLE = 160
 
 MIN_NOISE_FACTOR = 0
-MAX_NOISE_FACTOR = 2
+MAX_NOISE_FACTOR = 1.5
 
-processes_to_use = 7
+processes_to_use = 4
 
 keras_model_save_path = "keras_models/"
 
 dataset_directory = "generated_inputs"
-dataset_filename = "small_1.p"
+dataset_filename = "dataset_w3.p"
