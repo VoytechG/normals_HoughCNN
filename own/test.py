@@ -24,8 +24,10 @@ predictions_filename = "outputs/" + filename + "_predictions_2.npy"
 
 model_file_name = "model_c3_15.h5"
 
-dataset = pickle.load(open(os.path.join(dataset_directory, dataset_filename), "rb"))
-mean = dataset["mean"]
+# dataset = pickle.load(open(os.path.join(dataset_directory, dataset_filename), "rb"))
+# mean = dataset["mean"]
+with open("mean.npy", "rb") as f:
+    mean = np.load(f)
 
 
 def restore_normal(normal, R_inv):
@@ -40,19 +42,27 @@ def restore_normal(normal, R_inv):
     return normal
 
 
-def predict(point_cloud):
-    print(f"Generating accumulators for {len(point_cloud)} points")
-    he = HE(number_of_channels=3, point_cloud=point_cloud)
-    inputs, inverse_rotation_matrices = he.generate_accums_for_point_cloud()
+def predict(point_cloud, load_inputs=False):
 
-    inputs -= mean
+    if load_inputs is False:
+        print(f"Generating accumulators for {len(point_cloud)} points")
+        he = HE(number_of_channels=3, point_cloud=point_cloud)
+        inputs, inverse_rotation_matrices = he.generate_accums_for_point_cloud()
+
+        inputs -= mean
+
+        with open(predictions_filename, "wb") as f:
+            np.save(f, inputs)
+            np.save(f, inverse_rotation_matrices)
+
+    else:
+        with open(predictions_filename, "rb") as f:
+            inputs = np.load(f)
+            inverse_rotation_matrices = np.load(f)
 
     print("Running CNN... ")
     model = keras.models.load_model(keras_model_save_path + model_file_name)
     predictions = model.predict(inputs)
-
-    with open(predictions_filename, "wb") as f:
-        np.save(f, predictions)
 
     predicted_normals = [
         restore_normal(normal, R_inv[0])
